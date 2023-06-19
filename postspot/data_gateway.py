@@ -97,9 +97,10 @@ class FirestoreGateway(DataGateway):
     ):
         logger.debug(f"User with {author_google_id=} created post titled {title=}")
         doc_ref = self._db.collection("posts").document()
-        doc_ref.set(Post(author_google_id, title, content, longitude, latitude).to_dict())
+        post_id = doc_ref.id
+        doc_ref.set(Post(post_id, author_google_id, title, content, longitude, latitude).to_dict())
 
-        return doc_ref.id
+        return post_id
 
     def read_post(self, post_id: str) -> Post:
         logger.debug(f"Reading post {post_id}")
