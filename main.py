@@ -92,11 +92,39 @@ def user_signed_up(function):
 def index():
     return "Hello from PostSpot's post service"
 
-@user_signed_up
+#@user_signed_up
 @app.route("/posts", methods=["POST"])
-def add_post(google_id: str):
-    if not google_id:
-        return "Request body does not contain google_id of author"
+def add_post():
+    if "Authorization" in request.headers:
+        bearer = request.headers.get("Authorization")
+        token = bearer.split()[1]
+
+    if not token:
+        return jsonify({"message": "Token not provided"}), 401
+
+    try:
+        (
+            google_id,
+            name,
+            email,
+            token_issued_t,
+            token_expired_t,
+        ) = decode_openid_token(token)
+
+        token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
+        token_exp_datetime = datetime.fromtimestamp(token_expired_t)
+
+        logger.debug(
+            f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
+        )
+        logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
+
+        if not data_gateway.user_exists(google_id):
+            return jsonify({"message": "Invalid token or user not signed up"}), 401
+
+    except Exception as e:
+        logger.error(f"Invalid token: {e}")
+        return jsonify({"message": "Invalid token or user not signed up"}), 401
 
     title = request.json.get('title')
     content = request.json.get('content')
