@@ -94,7 +94,7 @@ def index():
 
 @user_signed_up
 @app.route("/posts", methods=["POST"])
-def add_post(google_id:str, title: str, content: str, longitude: float, latitude: float):
+def add_post(google_id: str):
     if not google_id:
         return "Request body does not contain google_id of author"
 
