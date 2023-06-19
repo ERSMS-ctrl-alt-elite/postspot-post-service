@@ -120,7 +120,7 @@ def add_post():
         logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
         if not data_gateway.user_exists(google_id):
-            return jsonify({"message": "Invalid token or user not signed up"}), 401
+            return jsonify({"message": f"User with {google_id=} does not exist"}), 401
 
     except Exception as e:
         logger.error(f"Invalid token: {e}")
@@ -139,7 +139,7 @@ def add_post():
         latitude = latitude,
     )
 
-    return f"Post {post_id=} added by user {google_id=}", 201
+    return jsonify({"message": f"Post {post_id=} added by user {google_id=}"}), 201
 
 @app.route("/posts/<post_id>", methods=["GET"])
 def read_post(post_id: str):
