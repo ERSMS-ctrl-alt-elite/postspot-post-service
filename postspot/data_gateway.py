@@ -76,7 +76,7 @@ class DataGateway(ABC):
         pass
 
     @abstractmethod
-    def read_post(self, post_id: str) -> Post:
+    def read_post(self, post_id: str) -> dict:
         pass
 
     @abstractmethod
@@ -102,14 +102,14 @@ class FirestoreGateway(DataGateway):
 
         return post_id
 
-    def read_post(self, post_id: str) -> Post:
+    def read_post(self, post_id: str) -> dict:
         logger.debug(f"Reading post {post_id}")
         doc_ref = self._db.collection("posts").document(post_id)
         doc = doc_ref.get()
 
         if doc.exists:
             logger.debug("Post found")
-            return Post.from_dict(doc.to_dict())
+            return doc.to_dict()
 
         raise PostNotFoundError(post_id)
 
