@@ -94,7 +94,7 @@ def index():
 
 @user_signed_up
 @app.route("/posts", methods=["POST"])
-def add_post(google_id:str, title: str, content: str, longitude: str, latitude: str):
+def add_post(google_id:str, title: str, content: str, longitude: float, latitude: float):
     post_id = data_gateway.add_post(
         author_google_id = google_id,
         title = title,
