@@ -95,6 +95,14 @@ def index():
 @user_signed_up
 @app.route("/posts", methods=["POST"])
 def add_post(google_id:str, title: str, content: str, longitude: float, latitude: float):
+    if not google_id:
+        return "Request body does not contain google_id of author"
+
+    title = request.json.get('title')
+    content = request.json.get('content')
+    longitude = request.json.get('longitude')
+    latitude = request.json.get('latitude')
+
     post_id = data_gateway.add_post(
         author_google_id = google_id,
         title = title,
