@@ -119,14 +119,13 @@ def add_post():
         )
         logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
-        if not data_gateway.user_exists("123"):
+        if not data_gateway.user_exists(google_id):
             return jsonify({"message": f"User with {google_id=} does not exist"}), 401
 
     except Exception as e:
         logger.error(f"Invalid token: {e}")
         return jsonify({"message": "Invalid token or user not signed up"}), 401
 
-    google_id="123"
     title = request.json.get('title')
     content = request.json.get('content')
     longitude = request.json.get('longitude')
