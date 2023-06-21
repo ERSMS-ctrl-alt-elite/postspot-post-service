@@ -135,7 +135,7 @@ class FirestoreGateway(DataGateway):
         reference_point = Point(latitude, longitude)
 
         # Query all posts from Firestore
-        docs = self._db.collection("posts").stream()
+        docs = self._db.collection("posts").where("latitude").stream()
 
         for doc in docs:
             post_data = doc.to_dict()
@@ -155,6 +155,10 @@ class FirestoreGateway(DataGateway):
 
         raise NoPostNearbyError(radius, longitude, latitude)
 
+    def get_post_from_author(self, author_google_id: str):
+        posts = self._db.collection("posts").where("author_google_id", "==", author_google_id).get()
+        return [post.to_dict() for post in posts]
+ 
 
     def user_exists(self, google_id: str) -> bool:
         doc_ref = self._db.collection("users").document(google_id)
