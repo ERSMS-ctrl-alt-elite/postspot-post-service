@@ -155,6 +155,10 @@ class FirestoreGateway(DataGateway):
 
         raise NoPostNearbyError(radius, longitude, latitude)
 
+    def get_post_from_author(self, author_google_id: str):
+        posts = self._db.collection("posts").where("author_google_id", "==", author_google_id).get()
+        return [post.to_dict() for post in posts]
+ 
 
     def user_exists(self, google_id: str) -> bool:
         doc_ref = self._db.collection("users").document(google_id)

@@ -163,6 +163,12 @@ def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: fl
         return jsonify({"message": f"No posts within {radius_in_kilometers} km of ({longitude=}, {latitude=})"}), 404
 
 
+@app.route('/posts', methods=['GET'])
+def get_posts_from_author():
+    author_google_id = request.args.get('author')
+    return data_gateway.get_post_from_author(author_google_id)
+    
+
 if __name__ == "__main__":
     debug = env != Environment.PRODUCTION
-    app.run(debug=debug, port=8080)
+    app.run(debug=debug, port=8081)
