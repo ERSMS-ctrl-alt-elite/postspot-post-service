@@ -151,8 +151,7 @@ def get_posts_nearby():
     latitude = float(request.args.get('latitude'))
     radius = 100
 
-    posts = data_gateway.get_posts_within_radius(longitude, latitude, radius)
-    return jsonify(posts)
+    return data_gateway.get_posts_within_radius(longitude, latitude, radius)
 
 
 if __name__ == "__main__":
