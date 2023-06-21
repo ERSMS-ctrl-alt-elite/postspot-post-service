@@ -146,10 +146,8 @@ def read_post(post_id: str):
     return data_gateway.read_post(post_id)
 
 @app.route('/posts/<float:longitude>/<float:latitude>', methods=['GET'])
-def get_posts_nearby(longitude: float, latitude: float):
-    radius = 100
-
-    return data_gateway.get_posts_within_radius(longitude, latitude, radius)
+def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.8):
+    return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
 
 
 if __name__ == "__main__":
