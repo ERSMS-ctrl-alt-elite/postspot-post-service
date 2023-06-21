@@ -135,7 +135,7 @@ class FirestoreGateway(DataGateway):
         reference_point = Point(latitude, longitude)
 
         # Query all posts from Firestore
-        docs = self._db.collection("posts").where("latitude").stream()
+        docs = self._db.collection("posts").stream()
 
         for doc in docs:
             post_data = doc.to_dict()
