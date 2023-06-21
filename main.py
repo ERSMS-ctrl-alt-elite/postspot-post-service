@@ -93,12 +93,12 @@ def user_signed_up(function):
 # ---------------------------------------------------------------------------- #
 
 
-@app.route("/")
+@app.route("/v1")
 def index():
     return "Hello from PostSpot's post service"
 
 #@user_signed_up
-@app.route("/posts", methods=["POST"])
+@app.route("/v1/posts", methods=["POST"])
 def add_post():
     token = None
     
@@ -148,14 +148,14 @@ def add_post():
 
     return jsonify({"message": f"Post {post_id=} added by user {google_id=}"}), 201
 
-@app.route("/posts/<post_id>", methods=["GET"])
+@app.route("/v1/posts/<post_id>", methods=["GET"])
 def read_post(post_id: str):
     try:
         return data_gateway.read_post(post_id)
     except PostNotFoundError:
         return jsonify({"message": f"No post with {post_id=} found"}), 404
 
-@app.route('/posts/<float:longitude>/<float:latitude>', methods=['GET'])
+@app.route('/v1/posts/<float:longitude>/<float:latitude>', methods=['GET'])
 def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.07):
     try:
         return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
