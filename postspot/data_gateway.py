@@ -1,5 +1,9 @@
+from importlib.resources import contents
 import logging
 from abc import ABC, abstractmethod
+
+from geopy import Point
+from geopy.distance import geodesic
 
 from google.cloud import firestore
 
@@ -14,64 +18,81 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------- #
 
 
-class UserNotFoundError(Exception):
-    def __init__(self, google_id: str):
-        super().__init__(f"User with google_id={google_id} not found")
+class PostNotFoundError(Exception):
+    def __init__(self, post_id: str):
+        super().__init__(f"Post with post_id={post_id} not found")
+
+class NoPostNearbyError(Exception):
+    def __init__(self, radius: float, longitude: float, latitude: float):
+        super().__init__(f"No posts within {radius} km of ({longitude=}, {latitude=})")
 
 
-class User:
+class Post:
     def __init__(
         self,
-        google_id: str = None,
-        name: str = None,
-        email: str = None,
-        account_status: AccountStatus = None,
+        post_id: str = None,
+        author_google_id: str = None,
+        title: str = None,
+        content: str = None,
+        longitude: float = None,
+        latitude: float = None,
     ):
-        self.google_id = google_id
-        self.name = name
-        self.email = email
-        self.account_status = account_status
+        self.post_id = post_id
+        self.author_google_id = author_google_id
+        self.title = title
+        self.content = content
+        self.longitude = longitude
+        self.latitude = latitude
 
     @staticmethod
     def from_dict(source):
-        return User(
-            source.get("google_id"),
-            source.get("name"),
-            source.get("email"),
-            AccountStatus(source.get("account_status")),
+        return Post(
+            source.get("post_id"),
+            source.get("author_google_id"),
+            source.get("title"),
+            source.get("content"),
+            source.get("longitude"),
+            source.get("latitude"),
         )
 
     def to_dict(self) -> dict:
         return {
-            "google_id": self.google_id,
-            "name": self.name,
-            "email": self.email,
-            "account_status": self.account_status.value,
+            "post_id": self.post_id,
+            "author_google_id": self.author_google_id,
+            "title": self.title,
+            "content": self.content,
+            "longitude": self.longitude,
+            "latitude": self.latitude,
         }
 
     def __repr__(self):
-        return f"""User(
-    google_id={self.google_id},
-    name={self.name},
-    email={self.email},
-    account_status={self.account_status.value},
+        return f"""Post(
+    post_id={self.post_id}
+    author_google_id={self.author_google_id},
+    title={self.title},
+    content={self.content},
+    longitude={self.longitude},
+    latitude={self.latitude},
 )
 """
 
 
 class DataGateway(ABC):
     @abstractmethod
-    def add_user(self, google_id: str, name: str, email: str):
+    def add_post(self, post_id: str, author_google_id: str, title: str, content: str, longitude: float, latitude: float) -> str:
         pass
 
     @abstractmethod
-    def read_user(self, google_id: str) -> User:
+    def read_post(self, post_id: str) -> dict:
+        pass
+
+    @abstractmethod
+    def get_posts_within_radius(self, longitude: float, latitude: float, radius: float):
         pass
 
     @abstractmethod
     def user_exists(self, google_id: str) -> bool:
         pass
-
 
 # ---------------------------------------------------------------------------- #
 #                                   Firestore                                  #
@@ -82,24 +103,58 @@ class FirestoreGateway(DataGateway):
     def __init__(self):
         self._db = firestore.Client()
 
-    def add_user(
-        self, google_id: str, name: str, email: str, account_status: AccountStatus
+    def add_post(
+        self, author_google_id: str, title: str, content: str, longitude: float, latitude: float
     ):
-        logger.debug(f"Adding user with {google_id=} {name=} {email=}")
-        doc_ref = self._db.collection("users").document(google_id)
-        doc_ref.set(User(google_id, name, email, account_status).to_dict())
-        logger.debug("User added")
+        logger.debug(f"User with {author_google_id=} created post titled {title=}")
+        doc_ref = self._db.collection("posts").document()
+        post_id = doc_ref.id
+        doc_ref.set(Post(post_id, author_google_id, title, content, longitude, latitude).to_dict())
 
-    def read_user(self, google_id: str) -> User:
-        logger.debug(f"Reading user {google_id}")
-        doc_ref = self._db.collection("users").document(google_id)
+        return post_id
+
+    def read_post(self, post_id: str) -> dict:
+        logger.debug(f"Reading post {post_id}")
+        doc_ref = self._db.collection("posts").document(post_id)
         doc = doc_ref.get()
 
         if doc.exists:
-            logger.debug("User found")
-            return User.from_dict(doc.to_dict())
+            logger.debug("Post found")
+            return doc.to_dict()
 
-        raise UserNotFoundError(google_id)
+        raise PostNotFoundError(post_id)
+
+    def get_posts_within_radius(self, longitude: float, latitude: float, radius: float):
+        logger.debug(f"Getting posts within {radius} km of ({longitude=}, {latitude=})")
+        posts = {"post": []}
+
+        # Convert radius from km to meters for geodesic distance calculation
+        radius_meters = radius * 1000
+
+        # Create a geopy Point for the reference location
+        reference_point = Point(latitude, longitude)
+
+        # Query all posts from Firestore
+        docs = self._db.collection("posts").stream()
+
+        for doc in docs:
+            post_data = doc.to_dict()
+
+            # Create a geopy Point for each post's location
+            post_point = Point(post_data['latitude'], post_data['longitude'])
+
+            # Calculate the distance between the reference location and the post's location
+            distance = geodesic(reference_point, post_point).meters
+
+            # Check if the distance is within the specified radius
+            if distance <= radius_meters:
+                posts["post"].append(post_data)
+
+        if posts["post"]:
+            return posts
+
+        raise NoPostNearbyError(radius, longitude, latitude)
+
 
     def user_exists(self, google_id: str) -> bool:
         doc_ref = self._db.collection("users").document(google_id)
