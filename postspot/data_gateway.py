@@ -150,7 +150,7 @@ class FirestoreGateway(DataGateway):
             if distance <= radius_meters:
                 posts["post"].append(post_data)
 
-        if posts:
+        if posts["post"]:
             return posts
 
         raise NoPostNearbyError(radius, longitude, latitude)
