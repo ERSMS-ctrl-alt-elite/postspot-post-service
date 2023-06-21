@@ -95,6 +95,8 @@ def index():
 #@user_signed_up
 @app.route("/posts", methods=["POST"])
 def add_post():
+    token = None
+    
     if "X-Forwarded-Authorization" in request.headers:
         bearer = request.headers.get("X-Forwarded-Authorization")
         token = bearer.split()[1]
