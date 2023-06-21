@@ -77,13 +77,11 @@ def user_signed_up(function):
         )
         logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
-        if data_gateway.user_exists(google_id):
-            current_user = data_gateway.read_user(google_id)
-        else:
+        if not data_gateway.user_exists(google_id):
             logger.error(f"User not signed up: {e}")
             return jsonify({"message": "Invalid token or user not signed up"}), 401
         
-        return function(current_user, *args, **kwargs)
+        return function(google_id, *args, **kwargs)
 
     return wrapper
 
@@ -99,21 +97,21 @@ def index():
 
 @app.route("/v1/posts", methods=["POST"])
 @user_signed_up
-def add_post(current_user):
+def add_post(google_id):
     title = request.json.get('title')
     content = request.json.get('content')
     longitude = float(request.json.get('longitude'))
     latitude = float(request.json.get('latitude'))
 
     post_id = data_gateway.add_post(
-        author_google_id = current_user.google_id,
+        author_google_id = google_id,
         title = title,
         content = content,
         longitude = longitude,
         latitude = latitude,
     )
 
-    return jsonify({"message": f"Post {post_id=} added by user {current_user.google_id=}"}), 201
+    return jsonify({"message": f"Post {post_id=} added by user {google_id=}"}), 201
 
 @app.route("/v1/posts/<post_id>", methods=["GET"])
 def read_post(post_id: str):
