@@ -49,8 +49,8 @@ def user_signed_up(function):
     def wrapper(*args, **kwargs):
         token = None
 
-        if "Authorization" in request.headers:
-            bearer = request.headers.get("Authorization")
+        if "X-Forwarded-Authorization" in request.headers:
+            bearer = request.headers.get("X-Forwarded-Authorization")
             token = bearer.split()[1]
 
         if not token:
@@ -95,8 +95,8 @@ def index():
 #@user_signed_up
 @app.route("/posts", methods=["POST"])
 def add_post():
-    if "Authorization" in request.headers:
-        bearer = request.headers.get("Authorization")
+    if "X-Forwarded-Authorization" in request.headers:
+        bearer = request.headers.get("X-Forwarded-Authorization")
         token = bearer.split()[1]
 
     if not token:
