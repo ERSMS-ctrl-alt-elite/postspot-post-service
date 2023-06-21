@@ -146,7 +146,7 @@ def read_post(post_id: str):
     return data_gateway.read_post(post_id)
 
 @app.route('/posts/<float:longitude>/<float:latitude>', methods=['GET'])
-def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.05):
+def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.07):
     return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
 
 
