@@ -7,7 +7,7 @@ from functools import wraps
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 
-from postspot.data_gateway import FirestoreGateway, Post
+from postspot.data_gateway import FirestoreGateway, NoPostNearbyError, Post, PostNotFoundError
 from postspot.config import Config
 from postspot.auth import decode_openid_token
 from postspot.constants import Environment, AccountStatus
@@ -143,11 +143,17 @@ def add_post():
 
 @app.route("/posts/<post_id>", methods=["GET"])
 def read_post(post_id: str):
-    return data_gateway.read_post(post_id)
+    try:
+        return data_gateway.read_post(post_id)
+    except PostNotFoundError:
+        return jsonify({"message": f"No post with {post_id=} found"}), 404
 
 @app.route('/posts/<float:longitude>/<float:latitude>', methods=['GET'])
 def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.07):
-    return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
+    try:
+        return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
+    except NoPostNearbyError:
+        return jsonify({"message": f"No posts within {radius_in_kilometers} km of ({longitude=}, {latitude=}"}), 404
 
 
 if __name__ == "__main__":
