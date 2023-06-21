@@ -153,7 +153,7 @@ def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: fl
     try:
         return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
     except NoPostNearbyError:
-        return jsonify({"message": f"No posts within {radius_in_kilometers} km of ({longitude=}, {latitude=}"})), 404
+        return jsonify({"message": f"No posts within {radius_in_kilometers} km of ({longitude=}, {latitude=})"}), 404
 
 
 if __name__ == "__main__":
