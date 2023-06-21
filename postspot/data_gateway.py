@@ -1,7 +1,9 @@
 from importlib.resources import contents
 import logging
 from abc import ABC, abstractmethod
-from math import sin, cos, sqrt, atan2, radians
+
+from geopy import Point
+from geopy.distance import geodesic
 
 from google.cloud import firestore
 
@@ -19,6 +21,10 @@ logger = logging.getLogger(__name__)
 class PostNotFoundError(Exception):
     def __init__(self, post_id: str):
         super().__init__(f"Post with post_id={post_id} not found")
+
+class NoPostNearbyError(Exception):
+    def __init__(self, radius: float, longitude: float, latitude: float):
+        super().__init__(f"No posts within {radius} km of ({longitude=}, {latitude=})")
 
 
 class Post:
@@ -122,30 +128,33 @@ class FirestoreGateway(DataGateway):
         logger.debug(f"Getting posts within {radius} km of ({longitude=}, {latitude=})")
         post_ids = []
 
-        # Convert radius from km to degrees (approximate)
-        radius_degrees = radius / 111.12
+        # Convert radius from km to meters for geodesic distance calculation
+        radius_meters = radius * 1000
 
-        # Calculate the bounds of the square area
-        min_longitude = longitude - radius_degrees
-        max_longitude = longitude + radius_degrees
-        min_latitude = latitude - radius_degrees
-        max_latitude = latitude + radius_degrees
+        # Create a geopy Point for the reference location
+        reference_point = Point(latitude, longitude)
 
-        # Query posts within the square area
-        query = (
-            self._db.collection("posts")
-            .where("longitude", ">=", min_longitude)
-            .where("longitude", "<=", max_longitude)
-            .where("latitude", ">=", min_latitude)
-            .where("latitude", "<=", max_latitude)
-        )
-
-        docs = query.stream()
+        # Query all posts from Firestore
+        docs = self._db.collection("posts").stream()
 
         for doc in docs:
-            post_ids.append(doc.id)
+            post_data = doc.to_dict()
 
-        return post_ids
+            # Create a geopy Point for each post's location
+            post_point = Point(post_data['latitude'], post_data['longitude'])
+
+            # Calculate the distance between the reference location and the post's location
+            distance = geodesic(reference_point, post_point).meters
+
+            # Check if the distance is within the specified radius
+            if distance <= radius_meters:
+                post_ids.append(post_data['post_id'])
+
+        if post_ids:
+            return post_ids
+
+        raise NoPostNearbyError(radius, longitude, latitude)
+
 
     def user_exists(self, google_id: str) -> bool:
         doc_ref = self._db.collection("users").document(google_id)
