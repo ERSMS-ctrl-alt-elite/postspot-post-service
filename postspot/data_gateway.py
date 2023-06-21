@@ -1,6 +1,7 @@
 from importlib.resources import contents
 import logging
 from abc import ABC, abstractmethod
+from math import sin, cos, sqrt, atan2, radians
 
 from google.cloud import firestore
 
@@ -80,6 +81,10 @@ class DataGateway(ABC):
         pass
 
     @abstractmethod
+    def get_posts_within_radius(self, longitude: float, latitude: float, radius: float):
+        pass
+
+    @abstractmethod
     def user_exists(self, google_id: str) -> bool:
         pass
 
@@ -112,6 +117,35 @@ class FirestoreGateway(DataGateway):
             return doc.to_dict()
 
         raise PostNotFoundError(post_id)
+
+    def get_posts_within_radius(self, longitude: float, latitude: float, radius: float):
+        logger.debug(f"Getting posts within {radius} km of ({longitude=}, {latitude=})")
+        post_ids = []
+
+        # Convert radius from km to degrees (approximate)
+        radius_degrees = radius / 111.12
+
+        # Calculate the bounds of the square area
+        min_longitude = longitude - radius_degrees
+        max_longitude = longitude + radius_degrees
+        min_latitude = latitude - radius_degrees
+        max_latitude = latitude + radius_degrees
+
+        # Query posts within the square area
+        query = (
+            self._db.collection("posts")
+            .where("longitude", ">=", min_longitude)
+            .where("longitude", "<=", max_longitude)
+            .where("latitude", ">=", min_latitude)
+            .where("latitude", "<=", max_latitude)
+        )
+
+        docs = query.stream()
+
+        for doc in docs:
+            post_ids.append(doc.id)
+
+        return post_ids
 
     def user_exists(self, google_id: str) -> bool:
         doc_ref = self._db.collection("users").document(google_id)
