@@ -128,8 +128,8 @@ def add_post():
 
     title = request.json.get('title')
     content = request.json.get('content')
-    longitude = request.json.get('longitude')
-    latitude = request.json.get('latitude')
+    longitude = float(request.json.get('longitude'))
+    latitude = float(request.json.get('latitude'))
 
     post_id = data_gateway.add_post(
         author_google_id = google_id,
