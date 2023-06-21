@@ -126,7 +126,7 @@ class FirestoreGateway(DataGateway):
 
     def get_posts_within_radius(self, longitude: float, latitude: float, radius: float):
         logger.debug(f"Getting posts within {radius} km of ({longitude=}, {latitude=})")
-        post_ids = []
+        posts = {"post": []}
 
         # Convert radius from km to meters for geodesic distance calculation
         radius_meters = radius * 1000
@@ -148,10 +148,10 @@ class FirestoreGateway(DataGateway):
 
             # Check if the distance is within the specified radius
             if distance <= radius_meters:
-                post_ids.append(post_data['post_id'])
+                posts["post"].append(post_data)
 
-        if post_ids:
-            return post_ids
+        if posts:
+            return posts
 
         raise NoPostNearbyError(radius, longitude, latitude)
 
