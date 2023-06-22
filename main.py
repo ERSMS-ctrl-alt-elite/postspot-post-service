@@ -120,7 +120,7 @@ def read_post(post_id: str):
     except PostNotFoundError:
         return jsonify({"message": f"No post with {post_id=} found"}), 404
 
-@app.route('/v1/posts/<float:longitude>/<float:latitude>', methods=['GET'])
+@app.route('/v1/posts/<float(signed=True):longitude>/<float(signed=True):latitude>', methods=['GET'])
 def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.07):
     try:
         return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
