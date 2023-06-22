@@ -78,7 +78,7 @@ def user_signed_up(function):
         logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
         if not data_gateway.user_exists(google_id):
-            logger.error(f"User not signed up: {e}")
+            logger.error(f"User not signed up")
             return jsonify({"message": "Invalid token or user not signed up"}), 401
         
         return function(google_id, *args, **kwargs)
