@@ -77,13 +77,11 @@ def user_signed_up(function):
         )
         logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
 
-        if data_gateway.user_exists(google_id):
-            current_user = data_gateway.read_user(google_id)
-        else:
-            logger.error(f"User not signed up: {e}")
+        if not data_gateway.user_exists(google_id):
+            logger.error(f"User not signed up")
             return jsonify({"message": "Invalid token or user not signed up"}), 401
         
-        return function(current_user, *args, **kwargs)
+        return function(google_id, *args, **kwargs)
 
     return wrapper
 
@@ -97,42 +95,9 @@ def user_signed_up(function):
 def index():
     return "Hello from PostSpot's post service"
 
-#@user_signed_up
 @app.route("/v1/posts", methods=["POST"])
-def add_post():
-    token = None
-    
-    if "X-Forwarded-Authorization" in request.headers:
-        bearer = request.headers.get("X-Forwarded-Authorization")
-        token = bearer.split()[1]
-
-    if not token:
-        return jsonify({"message": "Token not provided"}), 401
-
-    try:
-        (
-            google_id,
-            name,
-            email,
-            token_issued_t,
-            token_expired_t,
-        ) = decode_openid_token(token)
-
-        token_issued_at_datetime = datetime.fromtimestamp(token_issued_t)
-        token_exp_datetime = datetime.fromtimestamp(token_expired_t)
-
-        logger.debug(
-            f"Token issued at {token_issued_at_datetime} ({token_issued_t})"
-        )
-        logger.debug(f"Token expires at {token_exp_datetime} ({token_expired_t})")
-
-        if not data_gateway.user_exists(google_id):
-            return jsonify({"message": f"User with {google_id=} does not exist"}), 401
-
-    except Exception as e:
-        logger.error(f"Invalid token: {e}")
-        return jsonify({"message": "Invalid token or user not signed up"}), 401
-
+@user_signed_up
+def add_post(google_id):
     title = request.json.get('title')
     content = request.json.get('content')
     longitude = float(request.json.get('longitude'))
@@ -155,7 +120,7 @@ def read_post(post_id: str):
     except PostNotFoundError:
         return jsonify({"message": f"No post with {post_id=} found"}), 404
 
-@app.route('/v1/posts/<float:longitude>/<float:latitude>', methods=['GET'])
+@app.route('/v1/posts/<float(signed=True):longitude>/<float(signed=True):latitude>', methods=['GET'])
 def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: float = 0.07):
     try:
         return data_gateway.get_posts_within_radius(longitude, latitude, radius_in_kilometers)
@@ -163,7 +128,7 @@ def get_posts_nearby(longitude: float, latitude: float, radius_in_kilometers: fl
         return jsonify({"message": f"No posts within {radius_in_kilometers} km of ({longitude=}, {latitude=})"}), 404
 
 
-@app.route('/posts', methods=['GET'])
+@app.route('/v1/posts', methods=['GET'])
 def get_posts_from_author():
     author_google_id = request.args.get('author')
     return data_gateway.get_post_from_author(author_google_id)
